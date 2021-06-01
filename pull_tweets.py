@@ -9,13 +9,6 @@ import pandas as pd
 user_names = ["user_name1", "user_name2", "user_name3", "user_name4"]
 
 
-def prepare_input_data(names, pers):
-    data_set = {}
-    for name in names:
-        data_set[name] = pers
-    return data_set
-
-
 def make_periods(start_date, end_date, size):
     """
     This function divides the duration of time starting at the "start date" until now into slots of size "size". The output is a list of tuples [(slot1_start_date, slot1_end_date), (slot2_start_date, slot2_end_date), ...]
@@ -42,12 +35,24 @@ def make_periods(start_date, end_date, size):
         return periods
 
 
+def prepare_input_data(names, pers):
+    data_set = {}
+    l = len(pers)
+    counter = 0
+    for name in names:
+        data_set[name] = pers
+        counter += 1
+    total_periods = counter * l
+    return data_set, total_periods
+
+
 def get_tweets(input, out_dir, ext):
     """
     This function takes the list of individuals with the periods list and runs twint for each period. It stores the result in a csv file called c.Output and returns the dictionary of uncollected names and periods.
     """
     counter = 0
     uncollected = {}
+    total_uncollected = 0
     l = len(list(input.keys()))
     c = twint.Config()
     c.Store_csv = True
@@ -68,14 +73,16 @@ def get_tweets(input, out_dir, ext):
                 print(e)
                 if name not in uncollected:
                     uncollected[name] = [p]
+                    total_uncollected += 1
                 else:
                     uncollected[name].append(p)
+                    total_uncollected += 1
                 try:
                     os.remove(c.Output)
                 except OSError as e:
                     print(f"Error:  {c.Output} --> {e.strerror}")
                 continue
-    return uncollected
+    return uncollected, total_uncollected
 
 
 def user_input():
@@ -94,16 +101,16 @@ def user_input():
     return answer
 
 
-def print_uncollected(uncollected):
+def print_uncollected(uncollected, total_uncollected, total_periods):
     print(f"Uncollected items due to possible server disconnection ...")
-    for key,value in uncollected.items():
-        print(f"{key} -- > {value}")
-
+    for key in uncollected:
+        for value in uncollected[key]:
+            print(f"{key} -- > {value}")
+    print("#"*5 + f" {total_uncollected} out of {total_periods} could not be collected in this iteration! " + "#"*5)
 
 def combine_output(dir, out_file, ext):
     try:
         all_files = [file for file in glob.glob(f"{dir}*{ext}")]
-        print(all_files)
         combined = pd.concat(pd.read_csv(f) for f in all_files)
         combined.to_csv( f"{dir}{out_file}{ext}", index=False, encoding='utf-8-sig')
         print(f"The combined results are in the file --> {dir}{out_file}{file_ext}!")
@@ -113,9 +120,10 @@ def combine_output(dir, out_file, ext):
 
 if __name__ == "__main__":
     iteration = 0
-    name_list = user_names
-    #Please make sure that this folder exists in the current directory where the code is running.
-    output_dir = "./Tweets/"
+    name_list = user_names # Dummy list. 
+    output_dir = f"./Tweets_user_names/"
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
     output_file = "combined_results"
     file_ext = ".csv"
     period_size = 7
@@ -127,23 +135,21 @@ if __name__ == "__main__":
     # make_periods builds the list of time slots starting start_date of size period_size.
     periods = make_periods(start_date, end_date, period_size)
     if periods:
-        # for period in periods:
-        #     print(period)
-        input_data = prepare_input_data(name_list, periods)
+        input_data, total_periods = prepare_input_data(name_list, periods)
         while True:
             iteration += 1
             s = time.time()
-            uncollected = get_tweets(input_data, output_dir, file_ext)
+            uncollected, total_uncollected = get_tweets(input_data, output_dir, file_ext)
             e = time.time()
             print("-"*5 + "####" + "-"*5)
             print(f"Elapsed time for iteration {iteration} to get the tweets: {e-s} seconds!")
             if uncollected:
                 print("-"*5 + "####" + "-"*5)
-                print_uncollected(uncollected)
-                print("Printing Uncollected - Done!")
+                print_uncollected(uncollected, total_uncollected, total_periods)
                 ui = user_input()
                 if ui == 1:
                     input_data = uncollected
+                    total_periods = total_uncollected
                     continue # itertion with with uncollected list
                 else:
                     combine_output(output_dir, output_file, file_ext)
