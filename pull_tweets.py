@@ -4,9 +4,9 @@ import datetime
 import os, glob
 import pandas as pd
 
-researchers = ["xu_xiuzhong", "DrewPavlou", "adrianzenz", "wang_maya"]
-#researchers = ["adrianzenz", "DrewPavlou"]
-Uighur_individuals = ["ziba116", "RushanAbbas","arslan_hidayat", "Omerkanat1", "JewherIlham", "MehmetTohti", "RayhanAsat", "AbdurehimGheni", "nyrola", "humarisaac", "ZumretErkin", "Uyghurian", "nuryturkel", "SamiraImin", "IKashgary", "Uyghurspeaker", "akida_p", "Qelbinur10", "Bsintash", "KuzzatAltay", "MamutjanAB", "NurgulSawut", "AbduwelA", "Mehray_T", "TQahiri", "mahire53263554","Save_NajibullaS","mirehmet"]
+
+#Please put the list of keywords to be pulled by twint.
+user_names = ["user_name1", "user_name2", "user_name3", "user_name4"]
 
 
 def prepare_input_data(names, pers):
@@ -113,8 +113,9 @@ def combine_output(dir, out_file, ext):
 
 if __name__ == "__main__":
     iteration = 0
-    name_list = Uighur_individuals
-    output_dir = "./Tweets_Uighur_individuals/"
+    name_list = user_names
+    #Please make sure that this folder exists in the current directory where the code is running.
+    output_dir = "./Tweets/"
     output_file = "combined_results"
     file_ext = ".csv"
     period_size = 7
